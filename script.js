@@ -21,7 +21,7 @@ var Typer={
 	file:"", //file, must be set
 	accessCount:0, //times alt is pressed for Access Granted
 	deniedCount:0, //times caps is pressed for Access Denied
-	init: function(){// initialize Hacker Typer
+	init: function(){// initialize Dark Discord
 		this.accessCountimer=setInterval(function(){Typer.updLstChr();},500); // initialize timer for blinking cursor
 		$.get(Typer.file,function(data){// get the text file
 			Typer.text=data;// save the textfile in Typer.text
