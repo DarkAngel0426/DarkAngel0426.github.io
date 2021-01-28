@@ -1,194 +1,186 @@
-
 <!DOCTYPE html>
-    <head>
-        <style>
-            body {
-            font-family: 'Alatsi', sans-serif;
-            margin: 0;
-            overflow: hidden;
-            background: black;
-            }
-
-            .container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            }
-
-            .title {
-            font-size: 4vw;
-            color: white;
-            }
-
-            canvas {
-            width: 100%;
-            }
-        </style>
-    </head>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <link rel="icon" href="img/favicon.ico"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, minimum-scale=1.0"/>
+    <meta name="theme-color" content="#000000"/>
+    <meta
+            name="description"
+            content="The original HackerTyper. Turning all your hacker dreams into pseudo reality since 2011."
+    />
+    <link rel="apple-touch-icon" href="img/logo192.png"/>
+    <link rel="manifest" href="manifest.json"/>
+    <link rel="stylesheet" href="main.css"/>
+    <title>Hacker Typer</title>
+</head>
 <body>
-    <div class="container">
-    <a class="title" href="https://discord.com/users/588824068640342016">Dark Angel#9999</a>
+<div id="font_div"></div>
+<div id="main" class="main theme_color">
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <textarea id="hidden_text" class="hidden_text">Click here to begin</textarea>
+    <pre><span id="typer" class="typer"></span><span id="cursor">|</span><div id="bottom_padding"
+                                                                              class="bottom_padding"></div></pre>
+</div>
+<div id="footer" class="footer theme_border_color">
+    <div class="hamburger" onclick="showMenu()">
+        <div class="theme_bg_color"></div>
+        <div class="theme_bg_color"></div>
+        <div class="theme_bg_color"></div>
     </div>
-    <script>
-            var canvas = document.createElement("canvas");
-    var width = canvas.width = window.innerWidth * 0.75;
-    var height = canvas.height = window.innerHeight * 0.75;
-    document.body.appendChild(canvas);
-    var gl = canvas.getContext('webgl');
-
-    var mouse = {x: 0, y: 0};
-
-    var numMetaballs = 30;
-    var metaballs = [];
-
-    for (var i = 0; i < numMetaballs; i++) {
-    var radius = Math.random() * 60 + 10;
-    metaballs.push({
-        x: Math.random() * (width - 2 * radius) + radius,
-        y: Math.random() * (height - 2 * radius) + radius,
-        vx: (Math.random() - 0.5) * 3,
-        vy: (Math.random() - 0.5) * 3,
-        r: radius * 0.75
-    });
-    }
-
-    var vertexShaderSrc = `
-    attribute vec2 position;
-
-    void main() {
-    // position specifies only x and y.
-    // We set z to be 0.0, and w to be 1.0
-    gl_Position = vec4(position, 0.0, 1.0);
-    }
-    `;
-
-    var fragmentShaderSrc = `
-    precision highp float;
-
-    const float WIDTH = ` + (width >> 0) + `.0;
-    const float HEIGHT = ` + (height >> 0) + `.0;
-
-    uniform vec3 metaballs[` + numMetaballs + `];
-
-    void main(){
-    float x = gl_FragCoord.x;
-    float y = gl_FragCoord.y;
-
-    float sum = 0.0;
-    for (int i = 0; i < ` + numMetaballs + `; i++) {
-    vec3 metaball = metaballs[i];
-    float dx = metaball.x - x;
-    float dy = metaball.y - y;
-    float radius = metaball.z;
-
-    sum += (radius * radius) / (dx * dx + dy * dy);
-    }
-
-    if (sum >= 0.99) {
-    gl_FragColor = vec4(mix(vec3(x / WIDTH, y / HEIGHT, 1.0), vec3(0, 0, 0), max(0.0, 1.0 - (sum - 0.99) * 100.0)), 1.0);
-    return;
-    }
-
-    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-    }
-
-    `;
-
-    var vertexShader = compileShader(vertexShaderSrc, gl.VERTEX_SHADER);
-    var fragmentShader = compileShader(fragmentShaderSrc, gl.FRAGMENT_SHADER);
-
-    var program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-    gl.useProgram(program);
-
-    var vertexData = new Float32Array([
-    -1.0,  1.0, // top left
-    -1.0, -1.0, // bottom left
-    1.0,  1.0, // top right
-    1.0, -1.0, // bottom right
-    ]);
-    var vertexDataBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexDataBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.STATIC_DRAW);
-
-    var positionHandle = getAttribLocation(program, 'position');
-    gl.enableVertexAttribArray(positionHandle);
-    gl.vertexAttribPointer(positionHandle,
-                        2, // position is a vec2
-                        gl.FLOAT, // each component is a float
-                        gl.FALSE, // don't normalize values
-                        2 * 4, // two 4 byte float components per vertex
-                        0 // offset into each span of vertex data
-                        );
-
-    var metaballsHandle = getUniformLocation(program, 'metaballs');
-
-    loop();
-    function loop() {
-    for (var i = 0; i < numMetaballs; i++) {
-        var metaball = metaballs[i];
-        metaball.x += metaball.vx;
-        metaball.y += metaball.vy;
-
-        if (metaball.x < metaball.r || metaball.x > width - metaball.r) metaball.vx *= -1;
-        if (metaball.y < metaball.r || metaball.y > height - metaball.r) metaball.vy *= -1;
-    }
-
-    var dataToSendToGPU = new Float32Array(3 * numMetaballs);
-    for (var i = 0; i < numMetaballs; i++) {
-        var baseIndex = 3 * i;
-        var mb = metaballs[i];
-        dataToSendToGPU[baseIndex + 0] = mb.x;
-        dataToSendToGPU[baseIndex + 1] = mb.y;
-        dataToSendToGPU[baseIndex + 2] = mb.r;
-    }
-    gl.uniform3fv(metaballsHandle, dataToSendToGPU);
-    
-    //Draw
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-    requestAnimationFrame(loop);
-    }
-
-    function compileShader(shaderSource, shaderType) {
-    var shader = gl.createShader(shaderType);
-    gl.shaderSource(shader, shaderSource);
-    gl.compileShader(shader);
-
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        throw "Shader compile failed with: " + gl.getShaderInfoLog(shader);
-    }
-
-    return shader;
-    }
-
-    function getUniformLocation(program, name) {
-    var uniformLocation = gl.getUniformLocation(program, name);
-    if (uniformLocation === -1) {
-        throw 'Can not find uniform ' + name + '.';
-    }
-    return uniformLocation;
-    }
-
-    function getAttribLocation(program, name) {
-    var attributeLocation = gl.getAttribLocation(program, name);
-    if (attributeLocation === -1) {
-        throw 'Can not find attribute ' + name + '.';
-    }
-    return attributeLocation;
-    }
-
-    canvas.onmousemove = function(e) {
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
-    }
-    </script>
-</body>
+    <div class="mobile_links">
+        <a href="#" onclick="showModal(sitepoint)">Become a real Hacker</a>
+    </div>
+    <div class="footer_links">
+        <a href="#" onclick="showModal(settings)">Settings</a>
+        <a href="#" onclick="showModal(help)">Help</a>
+        <a href="#" onclick="showModal(about)">About</a>
+        <a target="_blank" rel="noopener noreferrer" href='https://twitter.com/Duiker101'>Follow me</a>
+        <a target="_blank" rel="noopener noreferrer" href='blog_subdomain/index.html'>Blog</a>
+        <a href="#" onclick="showModal(sitepoint)">Become a real Hacker</a>
+        <!--        <a target="_blank" rel="noopener noreferrer" href='' class="dynamic-link"></a>-->
+    </div>
+    <div></div>
+    <div><a onclick="closeFooter()" href="#">X</a></div>
+</div>
+<div id="overlay" class="overlay">
+    <div id="settings" class="modal theme_color theme_border_color">
+        <div><h2>Settings</h2></div>
+        <div class="settings_row">
+            <div>Color</div>
+            <div class="color_selector">
+                <div class="color_block" style="background:#00ff00" onclick="chooseColor('#00ff00')"></div>
+                <div class="color_block" style="background:#ff0000" onclick="chooseColor('#ff0000')"></div>
+                <div class="color_block" style="background:#0000ff" onclick="chooseColor('#0000ff')"></div>
+                <div class="color_block" style="background:#9a00ff" onclick="chooseColor('#9a00ff')"></div>
+                <div class="color_block" style="background:#ffff00" onclick="chooseColor('#ffff00')"></div>
+                <div class="color_block" style="background:#ffa500" onclick="chooseColor('#ffa500')"></div>
+            </div>
+            <input id="theme_color_input" class="theme_border_color" type="text" value="#00ff00"/>
+        </div>
+        <div class="settings_row">
+            <div>Speed</div>
+            <input id="speed_range" class="theme_bg_color" type="range" min="1" max="10" value="3"/>
+            <input id="speed_input" class="theme_border_color" type="text" value="3"/>
+        </div>
+        <div class="settings_row">
+            <div>Font Size</div>
+            <input id="font_size_range" class="theme_bg_color" type="range" min="10" max="30" value="12"/>
+            <input id="font_size_input" class="theme_border_color" type="text" value="12"/>
+        </div>
+        <div class="settings_row">
+            <div>Font</div>
+            <select class="theme_border_color" id="font_select">
+                <option value="Courier">Courier</option>
+                <option value="Anonymous Pro">Anonymous Pro</option>
+                <option value="Major Mono Display">Major Mono Display</option>
+                <option value="Nanum Gothic Coding">Nanum Gothic Coding</option>
+                <option value="Nova Mono">Nova Mono</option>
+                <option value="Share Tech Mono">Share Tech Mono</option>
+                <option value="Space Mono">Space Mono</option>
+                <option value="VT323">VT323</option>
+            </select>
+            <div></div>
+        </div>
+        <div id="file_row" class="settings_row file_row">
+            <div>File</div>
+            <input id="source_input" type="file" class="theme_border_color" onchange="onFileChange(this.files)"/>
+            <a href="#" onclick="fetchSource()">Reset</a>
+        </div>
+        <div class="modal_footer">
+            <a href="#" class="theme_color" onclick="hideOverlay()">Close</a>
+        </div>
+    </div>
+    <div id="sitepoint" class="modal theme_border_color">
+        <div><h2>Become a real Hacker</h2></div>
+        <p>
+            Software Development is an essential skill for any Hacker!
+            <br/>
+            Check out these courses:
+        </p>
+        <ul>
+            <li><a target="_blank" rel="noopener noreferrer" href="https://bit.ly/2FGTNHY">IT fundamentals for Cyber Security</a></li>
+            <li><a target="_blank" rel="noopener noreferrer" href="https://bit.ly/2DWLgjD">IBM Cyber Security Tools & Cyber Attacks</a></li>
+            <li><a target="_blank" rel="noopener noreferrer" href="https://bit.ly/2ZV8kpQ">Cyber Security Specialization</a></li>
+        </ul>
+        <p>
+            Some of these links may earn a commission for us at no extra cost to you.
+        </p>
+        <div class="modal_footer">
+            <a href="#" class="theme_color" onclick="hideOverlay()">Close</a>
+        </div>
+    </div>
+    <div id="about" class="modal theme_border_color">
+        <div><h2>About</h2></div>
+        <p>
+            Created in 2011, Hacker Typer arose from a simple desire to look
+            like the stereotypical hacker in movies and pop culture. Since
+            that time, it has brought smiles to millions of people across
+            the globe. Plus, many of you have temporarily transformed into
+            hackers yourselves, all from a few clicks on the keyboard (and
+            some programming magic behind the scenes!).
+        </p>
+        <p>
+            Also, if you are using Hacker Typer in any of your projects,
+            videos or images, feel free to reach out! It’s amazing to see
+            what happens when people’s creativity interacts with this site.
+        </p>
+        <p>
+            You can reach the developer here: <i>hackertyper@duiker101.net</i>
+        </p>
+        <p>
+            And please note: No, I will kindly not hack into anyone’s
+            personal property, so please skip these requests. Thanks!
+        </p>
+        <p>
+            You can find more info at <i><a target="_blank" href="https://duiker101.net">duiker101.net</a></i>
+        </p>
+        <div class="modal_footer">
+            <a href="#" class="theme_color" onclick="hideOverlay()">Close</a>
+        </div>
+    </div>
+    <div id="help" class="modal theme_border_color">
+        <div><h2>Help</h2></div>
+        <p>
+            To begin, start typing on your keyboard and
+            your hacker code will immediately appear! You can also enter full screen in your browser.
+        </p>
+        <p>
+            To enhance your experience, press <i>Shift</i> or <i>Alt</i> (or <i>Option</i> for Mac) three times.
+            <br/>
+            Press <i>Esc</i> to close any dialogs.
+        </p>
+        <p>
+            Configs can be modified in the <i>Settings</i> menu.
+        </p>
+        <p>
+            The menu bar can be dismissed with the <i>x</i> in the bottom right corner.
+            <br/>
+            Refresh the page to bring it back again.
+        </p>
+        <div class="modal_footer">
+            <a href="#" class="theme_color" onclick="hideOverlay()">Close</a>
+        </div>
+    </div>
+    <div id="granted" class="alert granted theme_border_color">
+        <h1>Access Granted</h1>
+    </div>
+    <div id="denied" class="alert denied">
+        <h1>Access Denied</h1>
+    </div>
+    <div id="menu" class="menu theme_border_color">
+        <a href="#" onclick="showModal(settings)">Settings</a>
+        <a href="#" onclick="showModal(help)">Help</a>
+        <a href="#" onclick="showModal(about)">About</a>
+    </div>
+</div>
+<script type="application/javascript" src="main.js"></script>
+<script async src="gtag/js_id_ua-172366112-1.js"></script>
+<script>
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'UA-172366112-1', { 'anonymize_ip': true });
+</script>
+<center><font size="2">This is the free demo result. For a full version of this website, please go to  <a href="https://www6.waybackmachinedownloader.com/website-downloader-online/scrape-all-files/">https://www6.waybackmachinedownloader.com/website-downloader-online/scrape-all-files/</a></font></center></body>
+</html>
